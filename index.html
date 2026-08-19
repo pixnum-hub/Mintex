@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mintex</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1647C4">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mintex">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="icons/favicon-16.png" type="image/png" sizes="16x16">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --font-body:'Inter',system-ui,-apple-system,sans-serif;
+    --radius:14px;
+    --bg:#F3F0E7; --surface:#FFFFFF; --ink:#1A1A17; --muted:#75726A;
+    --accent:#B8322B; --border:#DCD7C8; --focus:#B8322B;
+    --shadow: 0 1px 0 rgba(0,0,0,.04), 0 8px 20px -12px rgba(0,0,0,.25);
+  }
+  html[data-theme="dark"]{
+    --bg:#131316; --surface:#1C1C21; --ink:#EDEAE1; --muted:#94918A;
+    --accent:#FF7A5C; --border:#2B2B31; --focus:#FF7A5C;
+    --shadow: 0 1px 0 rgba(0,0,0,.3), 0 12px 24px -14px rgba(0,0,0,.6);
+  }
+  html[data-theme="oled"]{
+    --bg:#000000; --surface:#0A0A0A; --ink:#F2F2ED; --muted:#8C8C86;
+    --accent:#FF7A5C; --border:#1B1B1B; --focus:#FF7A5C;
+    --shadow: none;
+  }
+  html[data-theme="hc"]{
+    --bg:#000000; --surface:#000000; --ink:#FFFFFF; --muted:#FFFFFF;
+    --accent:#FFE500; --border:#FFFFFF; --focus:#FFE500;
+    --shadow: none;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--ink); font-family:var(--font-body);
+    min-height:100vh; min-height:100dvh; transition:background .25s ease,color .25s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  html[data-theme="hc"] body{transition:none;}
+  .page{
+    max-width:640px; margin:0 auto; padding:20px 16px 24px;
+    min-height:100vh; min-height:100dvh;
+    display:flex; flex-direction:column;
+  }
+
+  /* ---- topbar ---- */
+  .topbar{
+    display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap;
+    gap:10px; margin-bottom:28px;
+  }
+  .install-btn{
+    display:none; align-items:center; gap:6px; background:var(--surface);
+    border:1px solid var(--border); color:var(--ink); border-radius:999px;
+    padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer;
+  }
+  html[data-theme="hc"] .install-btn{ border-width:2px; }
+  .install-btn:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  .install-btn.visible{ display:flex; }
+  .theme-toggle{
+    display:flex; background:var(--surface); border:1px solid var(--border);
+    border-radius:999px; padding:3px; gap:2px;
+  }
+  html[data-theme="hc"] .theme-toggle{border-width:2px;}
+  .theme-toggle button{
+    width:34px; height:34px; border-radius:999px; border:none; background:transparent;
+    color:var(--muted); font-size:15px; cursor:pointer; display:flex;
+    align-items:center; justify-content:center; transition:background .15s ease,color .15s ease;
+  }
+  .theme-toggle button[aria-pressed="true"]{ background:var(--accent); color:var(--surface); }
+  html[data-theme="hc"] .theme-toggle button[aria-pressed="true"]{ color:#000; }
+  .theme-toggle button:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+
+  /* ---- stage ---- */
+  .stage{ flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; }
+  .title{
+    font-weight:800; font-size:clamp(26px,7vw,36px);
+    margin:0 0 6px; letter-spacing:-.02em;
+  }
+  .subtitle{ margin:0 0 20px; color:var(--muted); font-size:14.5px; }
+
+  /* ---- filters ---- */
+  .filters{
+    width:100%; text-align:left; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); margin-bottom:18px; overflow:hidden;
+  }
+  html[data-theme="hc"] .filters{ border-width:2px; }
+  .filters summary{
+    list-style:none; cursor:pointer; padding:14px 16px; display:flex;
+    align-items:center; justify-content:space-between; font-weight:600; font-size:14.5px;
+  }
+  .filters summary::-webkit-details-marker{ display:none; }
+  .filters summary::after{ content:"+"; color:var(--muted); font-size:18px; }
+  .filters[open] summary::after{ content:"–"; }
+  .filters summary:focus-visible{ outline:2px solid var(--focus); outline-offset:-2px; }
+  .filter-body{ padding:4px 16px 16px; }
+  .filter-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field.span2{ grid-column:1 / -1; }
+  .field span{ font-size:12px; color:var(--muted); }
+  .field input, .field select{
+    font-family:var(--font-body); font-size:14px; color:var(--ink); background:var(--bg);
+    border:1px solid var(--border); border-radius:9px; padding:10px 11px; width:100%;
+  }
+  html[data-theme="hc"] .field input, html[data-theme="hc"] .field select{ border-width:2px; }
+  .field input:focus-visible, .field select:focus-visible{ outline:2px solid var(--focus); outline-offset:1px; }
+  .reset-link{
+    background:none; border:none; color:var(--accent); font-size:13px; font-weight:600;
+    padding:12px 2px 2px; cursor:pointer;
+  }
+
+  /* ---- add word ---- */
+  .add-row{ display:flex; gap:8px; width:100%; margin-bottom:14px; }
+  .add-row input{
+    flex:1; font-family:var(--font-body); font-size:14px; color:var(--ink); background:var(--surface);
+    border:1px solid var(--border); border-radius:9px; padding:11px 12px;
+  }
+  html[data-theme="hc"] .add-row input{ border-width:2px; }
+  .add-row input:focus-visible{ outline:2px solid var(--focus); outline-offset:1px; }
+  .btn-add{
+    background:var(--surface); color:var(--ink); border:1px solid var(--border);
+    border-radius:9px; padding:11px 16px; font-size:14px; font-weight:600; cursor:pointer;
+  }
+  html[data-theme="hc"] .btn-add{ border-width:2px; }
+  .btn-add:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+
+  /* ---- results ---- */
+  .results{ width:100%; display:flex; flex-direction:column; gap:10px; }
+  .entry{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:14px 16px; text-align:left; position:relative;
+  }
+  html[data-theme="hc"] .entry{ border-width:2px; }
+  .entry-top{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-size:11px; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; margin-bottom:8px;
+  }
+  .entry-right{ display:flex; align-items:center; gap:6px; }
+  .entry-tag{ color:var(--accent); font-weight:700; }
+  .entry-redefine{
+    background:none; border:none; color:var(--muted); font-size:15px; line-height:1;
+    cursor:pointer; padding:2px 4px; border-radius:5px;
+  }
+  .entry-redefine:hover, .entry-redefine:focus-visible{ color:var(--accent); }
+  .entry-redefine:focus-visible{ outline:2px solid var(--focus); outline-offset:1px; }
+  .entry-delete{
+    background:none; border:none; color:var(--muted); font-size:16px; line-height:1;
+    cursor:pointer; padding:2px 3px; border-radius:5px;
+  }
+  .entry-delete:hover, .entry-delete:focus-visible{ color:var(--accent); }
+  .entry-delete:focus-visible{ outline:2px solid var(--focus); outline-offset:1px; }
+  .entry-word{ font-weight:700; font-size:19px; margin:0 0 3px; word-break:break-word; }
+  .entry-phonetic{ margin:0; color:var(--muted); font-size:12.5px; min-height:1.1em; }
+  .entry-def{
+    margin:8px 0 0; padding-top:8px; border-top:1px dashed var(--border);
+    font-size:13px; line-height:1.5; color:var(--ink);
+  }
+  html[data-theme="hc"] .entry-def{ border-top:1px solid var(--border); }
+
+  .results.single .entry{ text-align:center; padding:26px 22px 24px; }
+  .results.single .entry-top{ margin-bottom:16px; }
+  .results.single .entry-word{ font-size:clamp(30px,9vw,42px); margin:0 0 6px; line-height:1.1; }
+  .results.single .entry-phonetic{ font-size:14px; }
+  .results.single .entry-redefine{ font-size:18px; padding:4px 6px; }
+  .results.single .entry-delete{ font-size:19px; padding:4px 6px; }
+  .results.single .entry-def{ font-size:14.5px; text-align:left; margin-top:16px; padding-top:16px; }
+
+  .results-note{
+    margin:12px 0 0; font-size:13.5px; line-height:1.5; color:var(--muted); width:100%; text-align:left;
+  }
+
+  /* ---- controls ---- */
+  .controls{ display:flex; gap:10px; width:100%; margin-top:18px; }
+  button{ font-family:var(--font-body); cursor:pointer; }
+  .btn-primary{
+    flex:1; background:var(--accent); color:var(--surface); border:none;
+    border-radius:999px; padding:15px 18px; font-size:15.5px; font-weight:700;
+    letter-spacing:.01em; transition:transform .1s ease, opacity .15s ease;
+  }
+  html[data-theme="hc"] .btn-primary{ color:#000; }
+  .btn-primary:active{ transform:scale(.97); }
+  .btn-primary:disabled{ opacity:.6; cursor:progress; }
+  .btn-ghost{
+    background:transparent; color:var(--ink); border:1px solid var(--border);
+    border-radius:999px; padding:15px 18px; font-size:15.5px; font-weight:600;
+  }
+  .btn-ghost:disabled{ opacity:.5; cursor:default; }
+  html[data-theme="hc"] .btn-ghost{ border-width:2px; }
+  button:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  .status{ min-height:18px; font-size:12.5px; color:var(--muted); margin:10px 0 0; }
+
+  /* ---- footer ---- */
+  .footer{
+    margin-top:32px; padding-top:18px; border-top:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; text-align:center;
+  }
+  html[data-theme="hc"] .footer{ border-top-width:2px; }
+  .footer p{ margin:0; font-size:12.5px; color:var(--muted); line-height:1.6; }
+
+  @media (min-width:560px){
+    .page{ padding:36px 24px 32px; }
+    .controls{ max-width:360px; margin-left:auto; margin-right:auto; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="topbar">
+    <button type="button" class="install-btn" id="installBtn">⬇ Install app</button>
+    <div class="theme-toggle" id="themeToggle" role="group" aria-label="Colour theme">
+      <button type="button" data-theme-btn="light" aria-pressed="true" aria-label="Light theme">☀</button>
+      <button type="button" data-theme-btn="dark" aria-pressed="false" aria-label="Dark theme">☾</button>
+      <button type="button" data-theme-btn="oled" aria-pressed="false" aria-label="OLED true black theme">●</button>
+      <button type="button" data-theme-btn="hc" aria-pressed="false" aria-label="High contrast theme">◐</button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <h1 class="title">Mintex</h1>
+    <p class="subtitle">Mint invented words with your own rules — built from scratch.</p>
+
+    <details class="filters" id="filters" open>
+      <summary>Filters</summary>
+      <div class="filter-body">
+        <div class="filter-grid">
+          <label class="field"><span>Quantity (1–50)</span>
+            <input type="number" id="fQuantity" min="1" max="50" value="1">
+          </label>
+          <label class="field"><span>Difficulty</span>
+            <select id="fDifficulty">
+              <option value="any">Any</option>
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </label>
+          <label class="field"><span>Min length</span>
+            <input type="number" id="fMinLen" min="1" max="20" placeholder="Any">
+          </label>
+          <label class="field"><span>Max length</span>
+            <input type="number" id="fMaxLen" min="1" max="20" placeholder="Any">
+          </label>
+          <label class="field"><span>Starts with</span>
+            <input type="text" id="fStarts" maxlength="1" placeholder="Any letter">
+          </label>
+          <label class="field"><span>Ends with</span>
+            <input type="text" id="fEnds" maxlength="1" placeholder="Any letter">
+          </label>
+          <label class="field"><span>Contains letters</span>
+            <input type="text" id="fContains" maxlength="8" placeholder="e.g. ae">
+          </label>
+          <label class="field"><span>Excludes letters</span>
+            <input type="text" id="fExcludes" maxlength="8" placeholder="e.g. xz">
+          </label>
+          <label class="field span2"><span>Part of speech</span>
+            <select id="fPos">
+              <option value="any">Any</option>
+              <option value="noun">Noun</option>
+              <option value="verb">Verb</option>
+              <option value="adjective">Adjective</option>
+              <option value="adverb">Adverb</option>
+            </select>
+          </label>
+        </div>
+        <button type="button" class="reset-link" id="resetBtn">Reset filters</button>
+      </div>
+    </details>
+
+    <div class="add-row">
+      <input type="text" id="addWordInput" placeholder="Add your own word" maxlength="40">
+      <button type="button" class="btn-add" id="addWordBtn">+ Add</button>
+    </div>
+
+    <div class="results single" id="results" aria-live="polite">
+      <article class="entry">
+        <div class="entry-top">
+          <span class="entry-no">No. 0000</span>
+          <span class="entry-tag">COINAGE</span>
+        </div>
+        <p class="entry-word">Ready</p>
+        <p class="entry-phonetic"></p>
+      </article>
+    </div>
+    <p class="results-note" id="resultsNote">Tap "Coin a word" to mint something new.</p>
+
+    <div class="controls">
+      <button type="button" class="btn-primary" id="drawBtn">Coin a word</button>
+      <button type="button" class="btn-ghost" id="copyBtn" disabled>Copy</button>
+    </div>
+    <div class="controls">
+      <button type="button" class="btn-ghost" id="saveBtn" disabled>Save as .txt</button>
+      <button type="button" class="btn-ghost" id="resetAllBtn">Reset</button>
+    </div>
+    <p class="status" id="status" role="status"></p>
+  </main>
+
+  <footer class="footer">
+    <p>© <span id="year"></span> Manik Roy. All Rights Reserved.</p>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var THEMES = ["light","dark","oled","hc"];
+  var root = document.documentElement;
+  var themeToggle = document.getElementById("themeToggle");
+
+  function applyTheme(theme){
+    root.setAttribute("data-theme", theme);
+    var btns = themeToggle.querySelectorAll("[data-theme-btn]");
+    for (var i=0;i<btns.length;i++){
+      btns[i].setAttribute("aria-pressed", String(btns[i].getAttribute("data-theme-btn") === theme));
+    }
+  }
+  var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  applyTheme(prefersDark ? "dark" : "light");
+  themeToggle.addEventListener("click", function(e){
+    var btn = e.target.closest("[data-theme-btn]");
+    if (!btn) return;
+    var t = btn.getAttribute("data-theme-btn");
+    if (THEMES.indexOf(t) !== -1) applyTheme(t);
+  });
+
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  // ================= word generator (fully offline, built from scratch) =================
+  var drawBtn = document.getElementById("drawBtn");
+  var copyBtn = document.getElementById("copyBtn");
+  var saveBtn = document.getElementById("saveBtn");
+  var resultsEl = document.getElementById("results");
+  var resultsNote = document.getElementById("resultsNote");
+  var statusEl = document.getElementById("status");
+  var resetBtn = document.getElementById("resetBtn");
+  var resetAllBtn = document.getElementById("resetAllBtn");
+  var addWordInput = document.getElementById("addWordInput");
+  var addWordBtn = document.getElementById("addWordBtn");
+
+  var fQuantity = document.getElementById("fQuantity");
+  var fDifficulty = document.getElementById("fDifficulty");
+  var fMinLen = document.getElementById("fMinLen");
+  var fMaxLen = document.getElementById("fMaxLen");
+  var fStarts = document.getElementById("fStarts");
+  var fEnds = document.getElementById("fEnds");
+  var fContains = document.getElementById("fContains");
+  var fExcludes = document.getElementById("fExcludes");
+  var fPos = document.getElementById("fPos");
+
+  var drawCount = 0;
+  var entries = [];
+
+  function pad(n){ return String(n).padStart(4,"0"); }
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+  function randRange(range){ return range[0] + Math.floor(Math.random()*(range[1]-range[0]+1)); }
+  function clamp(n,lo,hi){ return Math.max(lo, Math.min(hi, n)); }
+
+  // ---- syllable pools, tiered by difficulty ----
+  var TIERS = {
+    easy: {
+      onsets:["b","c","d","f","g","h","j","k","l","m","n","p","r","s","t","v","w","y","z"],
+      nuclei:["a","e","i","o","u"],
+      codas:["","","n","r","l","s","t","m"],
+      syll:[1,2]
+    },
+    medium: {
+      onsets:["b","c","d","f","g","h","j","k","l","m","n","p","r","s","t","v","w","y","z",
+        "bl","br","cl","cr","dr","fl","fr","gl","gr","pl","pr","sh","st","tr","th","ch"],
+      nuclei:["a","e","i","o","u","ai","ea","ee","oo","ou"],
+      codas:["","","n","r","l","s","t","d","k","m","g","p","b","nd","st","nt","ck","ng","th","sh"],
+      syll:[2,3]
+    },
+    hard: {
+      onsets:["b","c","d","f","g","h","j","k","l","m","n","p","r","s","t","v","w","x","y","z",
+        "bl","br","cl","cr","dr","fl","fr","gl","gr","pl","pr","sc","sh","sk","sl","sm",
+        "sn","sp","st","sw","th","tr","tw","wh","ch","qu","zh","vr"],
+      nuclei:["a","e","i","o","u","ai","ea","ee","oo","ou","ay","oa","ie","au","y"],
+      codas:["n","r","l","s","t","d","k","m","g","p","b","f","v","z","x","ng","th","sh","ck","nd","st","nt","rk","lt","mp","nk"],
+      syll:[3,4]
+    }
+  };
+
+  var POS_SUFFIXES = {
+    noun:["","tion","ness","dom","ity","ment","ery","ling"],
+    verb:["","ify","ate","ize","en"],
+    adjective:["","ous","ive","al","ic","ful","ish"],
+    adverb:["ly"]
+  };
+
+  // ---- invented-meaning generator ----
+  var ADJ_BANK = ["shimmering","ancient","peculiar","delicate","sturdy","wandering","hollow",
+    "luminous","obscure","gentle","jagged","velvety","brittle","radiant","murky","nimble",
+    "weathered","silent","vivid","curious","faint","stubborn","fleeting","ornate","hushed"];
+  var THING_BANK = ["stone","tool","garment","vessel","instrument","ornament","seed","fragment",
+    "ember","thread","shell","lantern","charm","ledger","satchel","blade","coil","token","vine","husk"];
+  var PLACE_BANK = ["the northern highlands","coastal villages","old marketplaces","mountain forests",
+    "desert outposts","riverside towns","underground caverns","royal courts","forgotten libraries","harbor towns"];
+  var PURPOSE_BANK = ["measuring time","storing grain","signalling danger","binding agreements",
+    "navigating at night","preserving memories","warding off spirits","marking a boundary",
+    "calming restless animals","recording a debt"];
+  var DOMAIN_BANK = ["folklore","astronomy","cooking","seafaring","masonry","herbalism","weaving",
+    "trade","music","carpentry","cartography","brewing"];
+  var VERB_PHRASE_BANK = ["wander without purpose","gather scattered things","whisper secrets",
+    "mend what is broken","search for something lost","greet a stranger warmly",
+    "trace an old path","settle a quiet dispute"];
+
+  var NOUN_TPL = [
+    "A {adj} {thing} traditionally found in {place}.",
+    "A type of {thing} used for {purpose}.",
+    "An old {thing} once used to aid in {purpose}.",
+    "A small, {adj} object associated with {domain}.",
+    "A unit of {domain}, once common in {place}."
+  ];
+  var VERB_TPL = [
+    "To {verbPhrase}, especially in {place}.",
+    "To move in a {adj} way while managing to {verbPhrase}.",
+    "To cause something to become {adj2}.",
+    "To carefully arrange or prepare a {thing} for {purpose}."
+  ];
+  var ADJ_TPL = [
+    "Having the quality of being {adj2} and {adj}.",
+    "Resembling a {thing} associated with {domain}.",
+    "Marked by {adj2} behaviour or appearance.",
+    "Of or relating to {domain}, in an old or {adj} sense."
+  ];
+  var ADV_TPL = [
+    "In a {adj2} manner.",
+    "With {adj2} intensity, as if about to {verbPhrase}.",
+    "Done {adj2}ly, in the style of {domain}."
+  ];
+
+  function fillTemplate(tpl){
+    return tpl
+      .replace(/\{adj2\}/g, function(){ return pick(ADJ_BANK); })
+      .replace(/\{adj\}/g, function(){ return pick(ADJ_BANK); })
+      .replace(/\{thing\}/g, function(){ return pick(THING_BANK); })
+      .replace(/\{place\}/g, function(){ return pick(PLACE_BANK); })
+      .replace(/\{purpose\}/g, function(){ return pick(PURPOSE_BANK); })
+      .replace(/\{domain\}/g, function(){ return pick(DOMAIN_BANK); })
+      .replace(/\{verbPhrase\}/g, function(){ return pick(VERB_PHRASE_BANK); });
+  }
+
+  function generateDefinition(pos){
+    var p = pos === "any" ? pick(["noun","verb","adjective","adverb"]) : pos;
+    var tplPool = p === "noun" ? NOUN_TPL : p === "verb" ? VERB_TPL : p === "adjective" ? ADJ_TPL : ADV_TPL;
+    var text = fillTemplate(pick(tplPool));
+    text = text.charAt(0).toUpperCase() + text.slice(1);
+    return { text: text, pos: p };
+  }
+
+  function buildBase(tierKey){
+    var tier = TIERS[tierKey];
+    var count = randRange(tier.syll);
+    var syllables = [];
+    for (var i=0;i<count;i++){
+      syllables.push(pick(tier.onsets) + pick(tier.nuclei) + pick(tier.codas));
+    }
+    return { word: syllables.join(""), syllables: syllables };
+  }
+
+  function buildCandidate(pos, difficulty){
+    var tierKey = difficulty === "any" ? pick(["easy","medium","hard"]) : difficulty;
+    var base = buildBase(tierKey);
+    var word = base.word, syllables = base.syllables.slice();
+
+    if (pos !== "any"){
+      var pool = POS_SUFFIXES[pos];
+      var chance = pos === "adverb" ? 1 : 0.7;
+      if (Math.random() < chance){
+        var suf = pick(pool);
+        if (suf && !word.endsWith(suf)){
+          word += suf;
+          syllables.push(suf);
+        }
+      }
+    }
+    if (word.length < 2) return buildCandidate(pos, difficulty);
+    return { word: word, syllables: syllables, tier: tierKey };
+  }
+
+  function matchesFilters(word, f){
+    if (f.minLen && word.length < f.minLen) return false;
+    if (f.maxLen && word.length > f.maxLen) return false;
+    if (f.starts && word[0] !== f.starts) return false;
+    if (f.ends && word[word.length-1] !== f.ends) return false;
+    var i;
+    if (f.contains) for (i=0;i<f.contains.length;i++){ if (word.indexOf(f.contains[i]) === -1) return false; }
+    if (f.excludes) for (i=0;i<f.excludes.length;i++){ if (word.indexOf(f.excludes[i]) !== -1) return false; }
+    return true;
+  }
+
+  function generateOne(pos, difficulty, filters){
+    for (var attempt=0; attempt<250; attempt++){
+      var candidate = buildCandidate(pos, difficulty);
+      if (matchesFilters(candidate.word, filters)) return candidate;
+    }
+    return null;
+  }
+
+  function readFilters(){
+    var minLen = parseInt(fMinLen.value,10) || 0;
+    var maxLen = parseInt(fMaxLen.value,10) || 0;
+    if (minLen && maxLen && minLen > maxLen){ var t=minLen; minLen=maxLen; maxLen=t; }
+    return {
+      minLen: minLen,
+      maxLen: maxLen,
+      starts: (fStarts.value||"").trim().toLowerCase().slice(0,1),
+      ends: (fEnds.value||"").trim().toLowerCase().slice(0,1),
+      contains: (fContains.value||"").trim().toLowerCase().replace(/[^a-z]/g,""),
+      excludes: (fExcludes.value||"").trim().toLowerCase().replace(/[^a-z]/g,"")
+    };
+  }
+
+  function tagFor(pos, difficulty, tier){
+    var parts = [];
+    if (difficulty !== "any") parts.push(tier.toUpperCase());
+    if (pos !== "any") parts.push(pos.toUpperCase());
+    return parts.length ? parts.join(" · ") : "COINAGE";
+  }
+
+  function updateButtons(){
+    var has = entries.length > 0;
+    copyBtn.disabled = !has;
+    saveBtn.disabled = !has;
+    copyBtn.textContent = entries.length > 1 ? "Copy all (" + entries.length + ")" : "Copy";
+  }
+
+  function renderResults(){
+    resultsEl.innerHTML = "";
+
+    if (entries.length === 0){
+      resultsEl.classList.add("single");
+      resultsEl.innerHTML =
+        '<article class="entry"><div class="entry-top"><span class="entry-no">No. 0000</span>' +
+        '<span class="entry-tag">COINAGE</span></div><p class="entry-word">Ready</p><p class="entry-phonetic"></p></article>';
+      updateButtons();
+      return;
+    }
+
+    resultsEl.classList.toggle("single", entries.length === 1);
+    entries.forEach(function(entry, idx){
+      var article = document.createElement("article");
+      article.className = "entry";
+      article.innerHTML =
+        '<div class="entry-top"><span class="entry-no">No. ' + pad(entry.no) + '</span>' +
+        '<span class="entry-right"><span class="entry-tag"></span>' +
+        '<button type="button" class="entry-redefine" aria-label="Generate a new meaning" title="New meaning">↻</button>' +
+        '<button type="button" class="entry-delete" aria-label="Delete this word">×</button></span></div>' +
+        '<p class="entry-word"></p><p class="entry-phonetic"></p><p class="entry-def"></p>';
+      article.querySelector(".entry-tag").textContent = entry.tag;
+      article.querySelector(".entry-word").textContent = entry.word;
+      article.querySelector(".entry-phonetic").textContent = entry.phonetic;
+      article.querySelector(".entry-def").textContent = entry.definition;
+      article.querySelector(".entry-redefine").addEventListener("click", function(){ redefineEntry(idx); });
+      article.querySelector(".entry-delete").addEventListener("click", function(){ deleteEntry(idx); });
+      resultsEl.appendChild(article);
+    });
+    updateButtons();
+  }
+
+  function draw(){
+    var quantity = clamp(parseInt(fQuantity.value,10) || 1, 1, 50);
+    var pos = fPos.value;
+    var difficulty = fDifficulty.value;
+    var filters = readFilters();
+
+    drawBtn.disabled = true;
+    drawBtn.textContent = quantity > 1 ? "Minting " + quantity + " words…" : "Minting…";
+    statusEl.textContent = "";
+
+    setTimeout(function(){
+      var fresh = [], failCount = 0, i;
+      for (i=0;i<quantity;i++){
+        var r = generateOne(pos, difficulty, filters);
+        if (r){
+          drawCount++;
+          var def = generateDefinition(pos);
+          fresh.push({ no: drawCount, word: cap(r.word), tag: tagFor(pos, difficulty, r.tier),
+            phonetic: r.syllables.join(" · "), definition: def.text, defPos: def.pos });
+        } else {
+          failCount++;
+        }
+      }
+
+      entries = fresh;
+      renderResults();
+
+      if (entries.length === 0){
+        resultsNote.textContent = "No matches for those filters — try loosening them.";
+      } else if (failCount > 0){
+        resultsNote.textContent = entries.length + " word" + (entries.length===1?"":"s") + " minted, each with an invented meaning. " +
+          failCount + " couldn't match your filters within a reasonable number of tries.";
+      } else if (entries.length > 1){
+        resultsNote.textContent = entries.length + " words minted — each built from scratch with its own invented meaning.";
+      } else {
+        resultsNote.textContent = "A freshly minted word — built from scratch, complete with an invented meaning.";
+      }
+
+      drawBtn.disabled = false;
+      drawBtn.textContent = quantity > 1 ? "Coin " + quantity + " words" : "Coin a word";
+    }, 220);
+  }
+
+  function addCustomWord(){
+    var raw = (addWordInput.value || "").trim().toLowerCase();
+    var word = raw.replace(/[^a-z]/g,"");
+    if (!word){ statusEl.textContent = "Type a word first."; return; }
+    drawCount++;
+    var def = generateDefinition("any");
+    entries.push({ no: drawCount, word: cap(word), tag: "CUSTOM", phonetic: "", definition: def.text, defPos: def.pos });
+    addWordInput.value = "";
+    renderResults();
+    resultsNote.textContent = entries.length + " word" + (entries.length===1?"":"s") + " in your list.";
+    statusEl.textContent = 'Added "' + cap(word) + '" with an invented meaning.';
+  }
+
+  function deleteEntry(idx){
+    var removed = entries[idx];
+    entries.splice(idx, 1);
+    renderResults();
+    if (removed) statusEl.textContent = 'Removed "' + removed.word + '" from your list.';
+    if (entries.length === 0) resultsNote.textContent = 'Tap "Coin a word" to mint something new.';
+  }
+
+  function redefineEntry(idx){
+    var entry = entries[idx];
+    if (!entry) return;
+    var def = generateDefinition(entry.defPos || "any");
+    entry.definition = def.text;
+    entry.defPos = def.pos;
+    renderResults();
+    statusEl.textContent = 'New meaning generated for "' + entry.word + '".';
+  }
+
+  function copyWords(){
+    if (!entries.length){ statusEl.textContent = "Coin a word first."; return; }
+    var text = entries.map(function(e){ return e.word; }).join("\n");
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text)
+        .then(function(){
+          statusEl.textContent = entries.length > 1
+            ? "Copied " + entries.length + " words to clipboard."
+            : 'Copied "' + entries[0].word + '" to clipboard.';
+        })
+        .catch(function(){ statusEl.textContent = "Couldn't copy — try selecting the text manually."; });
+    } else {
+      statusEl.textContent = "Clipboard isn't available in this browser.";
+    }
+  }
+
+  function saveAsText(){
+    if (!entries.length){ statusEl.textContent = "Nothing to save yet."; return; }
+    var text = entries.map(function(e){ return e.word + (e.definition ? " — " + e.definition : ""); }).join("\n") + "\n";
+    try {
+      var blob = new Blob([text], { type: "text/plain" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      var d = new Date();
+      var stamp = d.getFullYear() + String(d.getMonth()+1).padStart(2,"0") + String(d.getDate()).padStart(2,"0") +
+        "-" + String(d.getHours()).padStart(2,"0") + String(d.getMinutes()).padStart(2,"0");
+      a.href = url;
+      a.download = "mintex-words-" + stamp + ".txt";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      statusEl.textContent = "Saved " + entries.length + " word" + (entries.length===1?"":"s") + " as a text file.";
+    } catch (e) {
+      statusEl.textContent = "Couldn't save a file in this browser.";
+    }
+  }
+
+  function resetFilters(){
+    fQuantity.value = 1;
+    fDifficulty.value = "any";
+    fMinLen.value = "";
+    fMaxLen.value = "";
+    fStarts.value = "";
+    fEnds.value = "";
+    fContains.value = "";
+    fExcludes.value = "";
+    fPos.value = "any";
+    drawBtn.textContent = "Coin a word";
+    statusEl.textContent = "Filters reset.";
+  }
+
+  function resetAll(){
+    resetFilters();
+    addWordInput.value = "";
+    entries = [];
+    renderResults();
+    resultsNote.textContent = 'Tap "Coin a word" to mint something new.';
+    statusEl.textContent = "Everything reset.";
+  }
+
+  fQuantity.addEventListener("change", function(){
+    var q = clamp(parseInt(fQuantity.value,10) || 1, 1, 50);
+    fQuantity.value = q;
+    drawBtn.textContent = q > 1 ? "Coin " + q + " words" : "Coin a word";
+  });
+
+  addWordInput.addEventListener("keydown", function(e){
+    if (e.key === "Enter") addCustomWord();
+  });
+
+  drawBtn.addEventListener("click", draw);
+  copyBtn.addEventListener("click", copyWords);
+  saveBtn.addEventListener("click", saveAsText);
+  addWordBtn.addEventListener("click", addCustomWord);
+  resetBtn.addEventListener("click", resetFilters);
+  resetAllBtn.addEventListener("click", resetAll);
+})();
+
+// ================= PWA: service worker + install button =================
+if ("serviceWorker" in navigator){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("sw.js").catch(function(){ /* offline support unavailable */ });
+  });
+}
+(function(){
+  var installBtn = document.getElementById("installBtn");
+  var deferredPrompt = null;
+
+  window.addEventListener("beforeinstallprompt", function(e){
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.classList.add("visible");
+  });
+
+  installBtn.addEventListener("click", function(){
+    if (!deferredPrompt) return;
+    installBtn.classList.remove("visible");
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.finally(function(){ deferredPrompt = null; });
+  });
+
+  window.addEventListener("appinstalled", function(){
+    installBtn.classList.remove("visible");
+    deferredPrompt = null;
+  });
+})();
+</script>
+</body>
+</html>
