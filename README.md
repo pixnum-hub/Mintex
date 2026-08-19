@@ -1,0 +1,2 @@
+# Mintex
+Word Generator App
